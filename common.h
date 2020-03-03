@@ -134,13 +134,13 @@ struct Interpretation {
             }
             bool isPositiveInterpretation = pos->second;
             if (isPositiveLiteral and isPositiveInterpretation) {
-                return true;
+                return false;
             }
             if (not(isPositiveLiteral or isPositiveInterpretation)) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     bool has_decision(const clause &c, bool use_backjump) {
@@ -203,6 +203,10 @@ struct Interpretation {
             }
         }
         return false;
+    }
+
+    void getModel(model &m) const{
+        m = _model;
     }
 
 private:

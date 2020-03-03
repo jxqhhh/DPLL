@@ -57,6 +57,7 @@ bool DPLL::check_sat() {
 }
 
 model DPLL::get_model() {
-    // TODO: your code here, or in the header file
-    return model();
+    model m;
+    I.getModel(m);
+    return m;
 }
