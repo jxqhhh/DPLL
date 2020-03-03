@@ -15,7 +15,7 @@ public:
      * @param phi the formula to be checked
      * @note Please DON'T CHANGE this signature because the grading script will directly call this function!
      */
-    DPLL(const formula &phi) : phi(phi) {}
+    DPLL(const formula &phi) : phi(phi), I(phi.num_variable) {}
 
     /**
      * Check if the formula is satisfiable.
@@ -37,6 +37,30 @@ public:
 
 private:
     formula phi;
+    Interpretation I;
+
+    /**
+     * If a unit is detected, a corresponding propagation will be done inside the function.
+     * @return false if not exists else true
+     */
+    bool exists_unit();
+
+    /**
+     * @return true if a conflict is detected else false
+     **/
+    bool confilict();
+
+    /**
+     * @param use_backjump: apply the backjump rule if the use_backjump argument is true; else apply the backtrack rule
+     * If any decision variable exists within current interpretation, apply the backtrack/backjump rule.
+     * @return true if has any decision variable else false
+     */
+    bool has_decision(bool use_backjump = false);
+
+    /**
+     * @return true if this->I satisfies this->phi
+     */
+    bool sat();
 };
 
 
