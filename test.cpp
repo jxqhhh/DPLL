@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         std::cout<< i;
         if (sat) {
             std::cout << "  sat" << std::endl;
-            if(not solver.sat()){
+            if(! solver.sat()){
                 std::cout<<"no@"<<std::endl;
             }
             //for (const auto &p : m) {

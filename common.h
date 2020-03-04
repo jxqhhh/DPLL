@@ -85,9 +85,9 @@ struct Interpretation {
             } else {
                 bool isPositiveliteral = _literal > 0;
                 bool isPositiveInterpretation = pos->second;
-                if (isPositiveliteral and (not isPositiveInterpretation)) {
+                if ((isPositiveliteral) && (! isPositiveInterpretation)) {
                     continue;
-                } else if ((not isPositiveliteral) and isPositiveInterpretation) {
+                } else if ((! isPositiveliteral) && (isPositiveInterpretation)) {
                     continue;
                 } else {
                     return false; // the clause is true under current interpretation, indicating the clause is not a unit
@@ -133,10 +133,10 @@ struct Interpretation {
                 return false; // undefined variable found, indicating no conflict
             }
             bool isPositiveInterpretation = pos->second;
-            if (isPositiveLiteral and isPositiveInterpretation) {
+            if (isPositiveLiteral & isPositiveInterpretation) {
                 return false;
             }
-            if (not(isPositiveLiteral or isPositiveInterpretation)) {
+            if (!(isPositiveLiteral || isPositiveInterpretation)) {
                 return false;
             }
         }
@@ -195,10 +195,10 @@ struct Interpretation {
             }
             bool isPositiveLiteral = _literal > 0;
             bool isPositiveAssignment = pos->second;
-            if (isPositiveAssignment and isPositiveLiteral) {
+            if (isPositiveAssignment && isPositiveLiteral) {
                 return true;
             }
-            if (not(isPositiveAssignment or isPositiveLiteral)) {
+            if (!(isPositiveAssignment || isPositiveLiteral)) {
                 return true;
             }
         }

@@ -33,7 +33,7 @@ bool DPLL::has_decision(bool use_backjump){
 
 bool DPLL::sat() {
     for(auto & _clause: phi.clauses){
-        if(not I.sat(_clause)){
+        if(! I.sat(_clause)){
             return false;
         }
     }
@@ -47,7 +47,7 @@ bool DPLL::check_sat() {
         while(exists_unit()){};
         I.decide();
         if(confilict()){
-            if(not has_decision()){
+            if(! has_decision()){
                 return false;
             }
         }else if(sat()){
