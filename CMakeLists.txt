@@ -7,5 +7,5 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 -Wall")
 
-add_executable(dpll main.cpp DimacsParser.h common.h DPLL.cpp DPLL.h)
-add_executable(test test.cpp DimacsParser.h common.h DPLL.cpp DPLL.h)
+add_executable(dpll main.cpp DimacsParser.h common.h DPLL.cpp DPLL.h CDCL.cpp CDCL.h)
+add_executable(test test.cpp DimacsParser.h common.h DPLL.cpp DPLL.h CDCL.cpp CDCL.h)
