@@ -7,27 +7,88 @@
 
 #include "common.h"
 #include <vector>
-
+#include <unordered_set>
+#include <queue>
+#include <cstring>
 namespace CDCL {
 
     enum assignment { // possible value assignment for propositional variables
-        _true, _false, _undefined
+        _true, _false
     };
 
     struct node {
         bool assigned = false; // indicating whether the node has been assigned; this attribute must be set to false if you undo the assignment
-        enum assignment value = _undefined;
-        int decision_level;
-        int antecedent = 0; // range: 0 - num_clauses (0 corresponds to decision variables or unassigned variables)
-        std::vector<int> antecedent_node_index; // range of elements of antecedent_node_index: 1 - num_clause
-        std::vector<int> descendant_node_index; // range of elements of descendant_node_index: 0 - num_clause (0 corresponds to the special conflict node)
-        node() : assigned(false), value(_undefined), antecedent(0) {
-            descendant_node_index.clear();
-            antecedent_node_index.clear();
+        enum assignment value;
+        int decision_level; // range: -1,0,1,2,... (-1 corresponds to node produced by unit propagation rule but without any parent node)
+        int antecedent = 0; // represents from which clause the node's value is derived; range: 0 - num_clauses (0 corresponds to decision variables or unassigned variables)
+        node() : assigned(false), antecedent(0){}
+    };
+
+    struct graph {
+        node* nodes=nullptr;
+        bool* edges=nullptr; // edges[i*num_nodes+j] is true iff there is a edge from node i to node j
+        const int num_nodes; // nodes include variable node and conflict node
+        graph(int n_variables):num_nodes(n_variables+1){
+            nodes = new node[num_nodes];
+            int num_edges = num_nodes*num_nodes;
+            edges = new bool[num_edges];
+            std::memset(edges, 0, sizeof(bool)*num_edges);
+        }
+        graph() = delete;
+        graph(const graph&) = delete;
+        graph(const graph&&) = delete;
+        ~graph() {
+            delete[] nodes;
+            delete[] edges;
+            nodes = nullptr;
+            edges = nullptr;
+        }
+        void remove_node(int index) {
+            // We do not remove the edge starting from nodes[index] in this function! Because we will use these edges in CDCL::has_decision function!
+            for(int i = index; i<num_nodes*num_nodes;i+=num_nodes){
+                edges[index] = false;
+            }
+
+            auto& n = nodes[index];
+            n.antecedent = 0;
+            n.assigned=false;
+        }
+        void add_edge(int row, int column){
+            edges[row*num_nodes+column] = true;
+        }
+        void remove_edge(int row, int column){
+            edges[row*num_nodes+column] = true;
+        }
+
+        /**
+         *
+         * @param _literal the literal waiting to be processed
+         * @param _clause the learnt new clause
+         * @param decision_level decision level of the special conflict node
+         */
+        void generate_clause(literal _literal, std::vector<literal>& _clause, const int decision_level){
+            int column = VAR(_literal);
+            bool has_parent_node=false;
+            for(int i=column;i<num_nodes*num_nodes;i+=num_nodes){
+                if(edges[i]) {
+                    int row = i/num_nodes;
+                    has_parent_node = true;
+                    auto &n = nodes[row];
+                    if(n.decision_level<decision_level){
+                        _clause.push_back(i/num_nodes);
+                    }else{
+                        generate_clause((n.value==_true)?(row):(-row), _clause, decision_level);
+                    }
+                }
+            }
+            if(!has_parent_node){
+                _clause.push_back(_literal);
+            }
         }
     };
 
     class CDCL {
+    public:
         CDCL(const CDCL &) = delete;
 
         CDCL(CDCL &&) = delete;
@@ -57,7 +118,7 @@ namespace CDCL {
         model get_model();
 
     private:
-        node *graph = nullptr; // graph[0] corresponds to the special conflict node
+        graph* _graph = nullptr;
         formula phi;
         int current_decision_level = 0;
 
@@ -82,6 +143,11 @@ namespace CDCL {
          * @return true if a conflict is detected else false
          **/
         bool conflict();
+
+        /**
+         * @return true if this->graph satisfies this->phi
+         */
+        bool sat();
     };
 }
 

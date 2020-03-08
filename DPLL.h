@@ -60,7 +60,6 @@ private:
     /**
      * @return true if this->I satisfies this->phi
      */
-public:
     bool sat();
 };
 

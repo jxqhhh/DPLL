@@ -32,6 +32,9 @@ bool DPLL::has_decision(bool use_backjump){
 }
 
 bool DPLL::sat() {
+    if(I.num_assigned()<phi.num_variable){
+        return false;
+    }
     for(auto & _clause: phi.clauses){
         if(! I.sat(_clause)){
             return false;

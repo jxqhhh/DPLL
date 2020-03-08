@@ -209,6 +209,10 @@ struct Interpretation {
         m = _model;
     }
 
+    int num_assigned() const{
+        return _assignments.size();
+    }
+
 private:
     vector<variableAssignment> _assignments; // One way to express the interpretation
     model _model; // Another way to express the interpretation; we will keep it identical to _assignments all the time
