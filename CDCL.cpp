@@ -227,6 +227,8 @@ bool CDCL::CDCL::has_decision() {
             ;
         }while(changed);*/
 
+
+
         // generate and include the new clause
         clause generated_clause;
         _graph->generate_clause(0, generated_clause, _graph->nodes[0].decision_level);
@@ -234,7 +236,6 @@ bool CDCL::CDCL::has_decision() {
             *it = (-*it);
         }
         phi.clauses.push_back(generated_clause);
-        phi.num_variable ++;
 
         // apply the backjump rule
         int literal_of_max_decision_level_in_new_clause;
@@ -262,7 +263,11 @@ bool CDCL::CDCL::has_decision() {
 
         // Remove child nodes of the literal node in the leanrt clause with maximum decision level:
         std::queue<int> child_nodes_index_queue;
-        child_nodes_index_queue.push(VAR(max_decision_level_in_new_clause));
+        for(int i = 0, base=_graph->num_nodes*VAR(max_decision_level_in_new_clause);i<_graph->num_nodes;i++,base++) {
+            if(_graph->edges[base]) {
+                child_nodes_index_queue.push(i);
+            }
+        }
         while(!child_nodes_index_queue.empty()){
             auto index = child_nodes_index_queue.front();
             child_nodes_index_queue.pop();
@@ -270,7 +275,11 @@ bool CDCL::CDCL::has_decision() {
             int base = index*_graph->num_nodes;
             for(int i = 0;i< _graph->num_nodes;i++, base++){
                 if(_graph->edges[base]){
-                    child_nodes_index_queue.push(i);
+                    if(_graph->nodes[i].assigned) {
+                        child_nodes_index_queue.push(i);
+                    }else{ // to avoid repeat enqueue
+                        _graph->remove_edge(index, i);
+                    }
                 }
             }
         }

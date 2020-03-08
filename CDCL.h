@@ -57,7 +57,7 @@ namespace CDCL {
             edges[row*num_nodes+column] = true;
         }
         void remove_edge(int row, int column){
-            edges[row*num_nodes+column] = true;
+            edges[row*num_nodes+column] = false;
         }
 
         /**
