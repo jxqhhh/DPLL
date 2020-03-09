@@ -84,17 +84,31 @@ namespace CDCL {
             for(int i=column;i<num_nodes*num_nodes;i+=num_nodes){
                 if(edges[i]) {
                     int row = i/num_nodes;
-                    has_parent_node = true;
                     auto &n = nodes[row];
+                    if(n.decision_level < 0){ // Special case: the node is determined by a unit clause and should be skipped over
+                        if(n.decision_level!=-1){
+                            exit(63);
+                        }
+                        continue;
+                    }else {
+                        has_parent_node = true;
+                    }
                     if(n.decision_level<decision_level){
+                        if(i/num_nodes==0){
+                           int j=0;
+                        }
                         _clause.insert(i/num_nodes);
                     }else{
                         generate_clause((n.value==_true)?(row):(-row), _clause, decision_level, processed, depth+1);
                     }
                 }
             }
-            if(!has_parent_node){
+            if((!has_parent_node)){
                 _clause.insert(_literal);
+                if(_literal==0){
+                    int j = 0;
+                    exit(63);
+                }
             }
             processed[VAR(_literal)] = true;
         }
@@ -131,6 +145,20 @@ namespace CDCL {
          * @note Please DON'T CHANGE this signature because the grading script will directly call this function!
          */
         model get_model();
+
+        bool debug_wrong_conflict(){
+            auto &n = _graph->nodes[0];
+            if(!n.assigned){
+                return false;
+            }
+            auto num = _graph->num_nodes;
+            for(int i=0;i<num*num;i+=num){
+                if(_graph->edges[i]){
+                    return false;
+                }
+            }
+            return true;
+        }
 
     private:
         graph* _graph = nullptr;

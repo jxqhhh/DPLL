@@ -116,6 +116,10 @@ void CDCL::CDCL::decide(){
         n.assigned=true;
         n.antecedent = 0;
         n.decision_level = current_decision_level++;
+
+        if(current_decision_level<0){
+            int j = 0;
+        }
         n.value = _true;
         return;
     }
@@ -152,8 +156,11 @@ bool CDCL::CDCL::conflict() {
             auto &conflictNode = _graph->nodes[0];
             conflictNode.assigned = true;
             conflictNode.antecedent = counter;
-            int max_decision_level = 0;
+            int max_decision_level = -1;
             for (auto &_literal: _clause) {
+                if(_literal==0){
+                    exit(63);
+                }
                 auto &n = _graph->nodes[VAR(_literal)];
                 if (n.decision_level > max_decision_level) {
                     max_decision_level = n.decision_level;
@@ -230,10 +237,19 @@ bool CDCL::CDCL::has_decision() {
 
 
 
+        if(_graph->nodes[0].decision_level < 0){ // special case: unavoidable conflict!
+            return false;
+        }
+
         // generate and include the new clause
         std::unordered_set<literal> _generated_clause_set;
         bool* processed = new bool[phi.num_variable+1];
         memset(processed, 0, sizeof(bool)*(phi.num_variable+1));
+
+        if(debug_wrong_conflict()){
+            int index=0;
+        }
+
         _graph->generate_clause(0, _generated_clause_set, _graph->nodes[0].decision_level, processed, 0);
         delete[] processed;
         processed = nullptr;
@@ -253,6 +269,11 @@ bool CDCL::CDCL::has_decision() {
                 literal_of_max_decision_level_in_new_clause = _literal;
             }
         }
+
+
+        /*if(max_decision_level_in_new_clause == -1){ // Special case:
+            return false;
+        }*/
 
         // Update the literal node in the leanrt clause with maximum decision level:
         auto &_node = _graph->nodes[VAR(literal_of_max_decision_level_in_new_clause)];
