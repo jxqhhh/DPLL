@@ -43,18 +43,23 @@ namespace CDCL {
             nodes = nullptr;
             edges = nullptr;
         }
-        void remove_node(int index) {
-            // We do not remove the edge starting from nodes[index] in this function! Because we will use these edges in CDCL::has_decision function!
-            for(int i = index; i<num_nodes*num_nodes;i+=num_nodes){
-                edges[i] = false;
+        void remove_node(int index, bool remove_parent_node, bool remove_child_node) {
+            if(remove_parent_node) {
+                for (int i = index; i < num_nodes * num_nodes; i += num_nodes) {
+                    edges[i] = false;
+                }
             }
-
+            if(remove_child_node){
+                for(int i = 0, base = index*num_nodes;i<num_nodes;i++,base++){
+                    edges[base] = false;
+                }
+            }
             auto& n = nodes[index];
             n.antecedent = 0;
             n.assigned=false;
         }
         void add_edge(int row, int column){
-            if(edges[column*num_nodes+row] || (row == 10 && column==6) || (row == 6 && column==10)){
+            if(edges[column*num_nodes+row] || (row == column)){
                 //exit(1);;
                 int i = 0;
             }
@@ -93,6 +98,8 @@ namespace CDCL {
             }
             processed[VAR(_literal)] = true;
         }
+
+
     };
 
     class CDCL {

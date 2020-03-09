@@ -231,11 +231,12 @@ bool CDCL::CDCL::has_decision() {
 
 
         // generate and include the new clause
-        std::unordered_set<literal > _generated_clause_set;
+        std::unordered_set<literal> _generated_clause_set;
         bool* processed = new bool[phi.num_variable+1];
         memset(processed, 0, sizeof(bool)*(phi.num_variable+1));
         _graph->generate_clause(0, _generated_clause_set, _graph->nodes[0].decision_level, processed, 0);
         delete[] processed;
+        processed = nullptr;
         clause generated_clause;
         for(auto it=_generated_clause_set.begin(),it2=_generated_clause_set.end();it!=it2;it++){
             generated_clause.push_back(-*it);
@@ -255,20 +256,30 @@ bool CDCL::CDCL::has_decision() {
 
         // Update the literal node in the leanrt clause with maximum decision level:
         auto &_node = _graph->nodes[VAR(literal_of_max_decision_level_in_new_clause)];
-        _node.value = (_node.value == _true)?(_false):(_true);
+        auto v = (_node.value == _true)?(_false):(_true);
+        _graph->remove_node(VAR(literal_of_max_decision_level_in_new_clause), true, false);
+        _node.assigned = true;
+        _node.value = v;
         _node.antecedent = phi.clauses.size();
-        for(int i = 0;i<_graph->num_nodes;i++){
-            _graph->remove_edge(i, VAR(literal_of_max_decision_level_in_new_clause));
-        }
+        int max_decision_level = -1;
         for(auto &_literal:generated_clause){
             if(_literal!=literal_of_max_decision_level_in_new_clause){
                 _graph->add_edge(VAR(_literal),VAR(literal_of_max_decision_level_in_new_clause));
+                auto dl = _graph->nodes[VAR(_literal)].decision_level;
+                if(dl>max_decision_level){
+                    max_decision_level = dl;
+                }
             }
         }
+        //for(int i=0;i<_graph->num_nodes;i++){
+        //    _graph->remove_edge(i,VAR(literal_of_max_decision_level_in_new_clause));
+        //}
+        _node.decision_level = max_decision_level;
+
 
         // Remove child nodes of the literal node in the leanrt clause with maximum decision level:
         std::queue<int> child_nodes_index_queue;
-        for(int i = 0, base=_graph->num_nodes*VAR(max_decision_level_in_new_clause);i<_graph->num_nodes;i++,base++) {
+        for(int i = 0, base=_graph->num_nodes*VAR(literal_of_max_decision_level_in_new_clause);i<_graph->num_nodes;i++,base++) {
             if(_graph->edges[base]) {
                 child_nodes_index_queue.push(i);
             }
@@ -276,7 +287,7 @@ bool CDCL::CDCL::has_decision() {
         while(!child_nodes_index_queue.empty()){
             auto index = child_nodes_index_queue.front();
             child_nodes_index_queue.pop();
-            _graph->remove_node(index);
+            _graph->remove_node(index, true, false);
             int base = index*_graph->num_nodes;
             for(int i = 0;i< _graph->num_nodes;i++, base++){
                 if(_graph->edges[base]){
