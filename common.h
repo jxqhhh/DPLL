@@ -40,7 +40,7 @@ struct variableAssignment {
     bool isDecided; // whether produced by decision rule
     int index; // range: 1-num_variable
     bool isPositive; // true if assigned true; false if assigned false
-    variableAssignment() : isDecided(true), isPositive(true), index(0) {} // default constructor
+    variableAssignment() : isDecided(true), index(0), isPositive(true) {} // default constructor
 };
 
 

@@ -1,11 +1,9 @@
 #include <iostream>
 #include <chrono>
-#include <string>
 
 #include "common.h"
 #include "DimacsParser.h"
-#include "DPLL.h"
-
+#include "CHRONOLOGICAL_BACKTRACK_DPLL.h"
 
 // helper function to show a formula
 std::string show_formula(const formula& phi) {
@@ -28,10 +26,10 @@ std::string show_formula(const formula& phi) {
 int main(int argc, char **argv) {
     if (argc < 2) {
         std::cerr << "error: no input files" << std::endl;
-        //return 1;
+        return 1;
     }
 
-    for(int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         std::string f(argv[i]);
         std::cout << f << std::endl;
         formula phi = DimacsParser::parse(f);
@@ -39,7 +37,7 @@ int main(int argc, char **argv) {
 
         // timer start
         auto start = std::chrono::steady_clock::now();
-        DPLL solver(phi);
+        CHRONOLOGICAL_BACKTRACK_DPLL solver(phi);
         bool sat = solver.check_sat();
         model m;
         if (sat) {

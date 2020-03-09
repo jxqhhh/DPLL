@@ -6,5 +6,5 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O2 -Wall")
 
-add_executable(dpll main.cpp DimacsParser.h common.h DPLL.cpp DPLL.h CDCL.cpp CDCL.h)
-add_executable(test test.cpp DimacsParser.h common.h DPLL.cpp DPLL.h CDCL.cpp CDCL.h)
+add_executable(CHRONOLOGICAL_BACKTRACK_DPLL main2.cpp DimacsParser.h common.h CHRONOLOGICAL_BACKTRACK_DPLL.cpp CHRONOLOGICAL_BACKTRACK_DPLL.h)
+add_executable(dpll main.cpp DimacsParser.h common.h DPLL.cpp DPLL.h)
