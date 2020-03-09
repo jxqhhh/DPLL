@@ -16,6 +16,7 @@ CDCL::CDCL::~CDCL() {
 
 CDCL::CDCL::CDCL(const formula& _phi): phi(_phi){
     _graph = new graph(phi.num_variable);
+    num_original_clauses = phi.clauses.size();
 }
 
 model CDCL::CDCL::get_model() {
@@ -230,10 +231,14 @@ bool CDCL::CDCL::has_decision() {
 
 
         // generate and include the new clause
+        std::unordered_set<literal > _generated_clause_set;
+        bool* processed = new bool[phi.num_variable+1];
+        memset(processed, 0, sizeof(bool)*(phi.num_variable+1));
+        _graph->generate_clause(0, _generated_clause_set, _graph->nodes[0].decision_level, processed, 0);
+        delete[] processed;
         clause generated_clause;
-        _graph->generate_clause(0, generated_clause, _graph->nodes[0].decision_level);
-        for(auto it=generated_clause.begin(),it2=generated_clause.end();it!=it2;it++){
-            *it = (-*it);
+        for(auto it=_generated_clause_set.begin(),it2=_generated_clause_set.end();it!=it2;it++){
+            generated_clause.push_back(-*it);
         }
         phi.clauses.push_back(generated_clause);
 
@@ -385,7 +390,8 @@ bool CDCL::CDCL::sat(){
             return false;
         }
     }
-    for(auto &_clause: phi.clauses){
+    for(int i = 0;i<num_original_clauses;i++){
+        auto &_clause = phi.clauses[i];
         // TODO: skip new leanred clauses
         for(auto &_literal: _clause){
             auto &n = _graph->nodes[VAR(_literal)];

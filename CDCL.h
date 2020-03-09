@@ -46,7 +46,7 @@ namespace CDCL {
         void remove_node(int index) {
             // We do not remove the edge starting from nodes[index] in this function! Because we will use these edges in CDCL::has_decision function!
             for(int i = index; i<num_nodes*num_nodes;i+=num_nodes){
-                edges[index] = false;
+                edges[i] = false;
             }
 
             auto& n = nodes[index];
@@ -54,6 +54,10 @@ namespace CDCL {
             n.assigned=false;
         }
         void add_edge(int row, int column){
+            if(edges[column*num_nodes+row] || (row == 10 && column==6) || (row == 6 && column==10)){
+                //exit(1);;
+                int i = 0;
+            }
             edges[row*num_nodes+column] = true;
         }
         void remove_edge(int row, int column){
@@ -66,7 +70,10 @@ namespace CDCL {
          * @param _clause the learnt new clause
          * @param decision_level decision level of the special conflict node
          */
-        void generate_clause(literal _literal, std::vector<literal>& _clause, const int decision_level){
+        void generate_clause(literal _literal, std::unordered_set<literal>& _clause, const int decision_level, bool* processed, int depth){
+            if(processed[VAR(_literal)]){
+                return;
+            }
             int column = VAR(_literal);
             bool has_parent_node=false;
             for(int i=column;i<num_nodes*num_nodes;i+=num_nodes){
@@ -75,15 +82,16 @@ namespace CDCL {
                     has_parent_node = true;
                     auto &n = nodes[row];
                     if(n.decision_level<decision_level){
-                        _clause.push_back(i/num_nodes);
+                        _clause.insert(i/num_nodes);
                     }else{
-                        generate_clause((n.value==_true)?(row):(-row), _clause, decision_level);
+                        generate_clause((n.value==_true)?(row):(-row), _clause, decision_level, processed, depth+1);
                     }
                 }
             }
             if(!has_parent_node){
-                _clause.push_back(_literal);
+                _clause.insert(_literal);
             }
+            processed[VAR(_literal)] = true;
         }
     };
 
@@ -121,7 +129,7 @@ namespace CDCL {
         graph* _graph = nullptr;
         formula phi;
         int current_decision_level = 0;
-
+        int num_original_clauses;
         /**
          * Detect the case that the unit propogation rule can be applied; apply the rule if it is the case
          * @return true iff at least one unit detected
