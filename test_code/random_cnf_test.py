@@ -1,98 +1,145 @@
-# Author: Zhang Xinwei
-# Modify: Wang Yuanbiao
-# Validation for the 18 test cases with TLE detection
-
-
 import os
+import random
 import re
 from functools import partial
 import argparse
 
+PROBABILITY = 0.05
 
 
-unsat_indices = [0, 4, 7, 10, 12, 14, 15, 16, 18]
-num_vars = [1, 5, 4, 5, 20, 12, 20, 21, 70, 57, 90, 42, 35, 45, 80, 50, 275, 163, 157]
+def generate_testing_data(testing_data_fn:str, num_variables, num_clauses):
 
+    global PROBABILITY
 
-def execute(i):   
-    with os.popen('./release/dpll tests/test{}.dimacs'.format(i)) as f:
+    assert (num_clauses>0) and isinstance(num_clauses, int)
+    assert (num_variables > 0) and isinstance(num_variables, int)
+
+    if os.path.exists(testing_data_fn):
+        print("File \"{}\" alreasy exists. Try another filename for generated testing data.".format(testing_data_fn))
+        return False
+    f = open(testing_data_fn,'w')
+
+    # write header:
+    f.write("p cnf {} {}\n".format(num_variables, num_clauses))
+
+    # write clauses:
+    for i in range(num_clauses):
+        clause = ""
+        okay = False
+        while not okay:
+            for literal in range(1,num_variables+1):
+                if random.uniform(0,1) > PROBABILITY:
+                    if random.uniform(0,1) > 0.5:
+                        clause += str(literal)
+                    else:
+                        clause += str(-literal)
+                    clause += " "
+            if len(clause) > 0:
+                okay = True
+        else:
+            clause += '0\n'
+            f.write(clause)
+
+    f.flush()
+    f.close()
+
+    return True
+
+def my_solver(solver_path, testing_data_fn):
+    with os.popen("{} {}".format(solver_path, testing_data_fn)) as f:
         res = f.readlines()
-    return res
-
-
-def parseDimacs(i):
-    filename = 'tests/test{}.dimacs'.format(i)
-    clauses = []
-    with open(filename) as f:
-        lines = f.readlines()
-    for line in lines:
-        line = line.strip()
-        if len(line) == 0: continue
-        if line[0] in ['c', 'p']: continue
-        literals = list(map(int, line.split()[:-1]))
-        clauses.append(literals)
-    return clauses
-
-
-def parseExecuteResult(res):
-    reg = re.compile(r'(time:\s*)(\S*)(\s*ms)')
-    dplltime = float(reg.findall(res[-1])[0][1])
-    sat = not 'unsat' in res[1]
-    if not sat: 
-        return True, dplltime
-    res = map(lambda x: x.strip(), res[2:-1])
-    interpretation = {}
     for r in res:
-        literal, _, value = r.split()
-        literal = int(literal)
-        value = int(value) * 2 - 1
-        interpretation[literal] = value
-    return interpretation, dplltime
+        if 'UNSAT' in r.upper():
+            return (False, None, res[-1])
+    assignment = {}
+    for r in res:
+        if '->' in r:
+            literal = abs(int(r.split('->')[0]))
+            value = (int(r.split('->')[1])==1)
+            assignment[literal] = value
+    return (True, assignment, res[-1])
 
 
-def check(clauses, interpretation, index, dplltime):
-    if dplltime > 5000:
+
+def test_satisfying_assignment(assignment:dict, testing_data_fn):
+    with open(testing_data_fn, 'r') as f:
+        cnf = f.readlines()
+    for clause in cnf:
+        if clause.startswith("p"):
+            num_variables = int(clause.replace("p cnf ","").split(" ")[0])
+            if num_variables!= len(assignment.keys()):
+                return False, "num of assigned varibales({}) not equal to num of variables({})".format(len(assignment.keys()), num_variables)
+            for i in range(1, num_variables+1):
+                if not (i in assignment.keys()):
+                    return False, "variable {} not assigned".format(i)
+            continue
+        if clause.startswith('c'):
+            continue
+        literals = [int(l) for l in clause[:-3].split(" ")]
+        clause_sat = False
+        for literal in literals:
+            if abs(literal) in assignment.keys():
+                value = assignment[abs(literal)]
+                if (literal > 0) and value:
+                    clause_sat = True
+                elif (literal < 0) and (not value):
+                    clause_sat = True
+        if not clause_sat:
+            return False, "current assignment unsatisfies the clause: \n{}\ncurrent assignment: \n{}\n".format(str(literals), str(assignment))
+    return True, ""
+
+
+def minisat(testing_data_fn):
+    # return true if satisfiable; return false else
+    with os.popen('minisat {}'.format(testing_data_fn)) as f:
+        res = f.readlines()
+    if res[-1].upper().replace("\n","")=="UNSATISFIABLE":
         return False
-    if interpretation is True:
-        return (index in unsat_indices)
     else:
-        condition1 = all(map(any, map(partial(map, lambda x: x * interpretation[abs(x)] > 0), clauses)))
-        condition2 = (len(interpretation) == num_vars[index])
-        return (condition1 and condition2)
-
-
-def test(i):
-    res = execute(i)
-    inter, dplltime = parseExecuteResult(res)
-    clauses = parseDimacs(i)
-    
-    if inter is True:
-        print(i, 'unsat', end=' ')
-    else:
-        print(i, 'sat for', len(inter), 'vars', end=' ')
-
-    if check(clauses, inter, i, dplltime):
-        print('pass')
         return True
-    else:
-        print('fail')
-        return False
 
+def error_handler(epoch:int, testing_data_fn, info:str):
+    print("Epoch {}: Error with testing sample {}\n".format(epoch, testing_data_fn))
+    print("Error info: {}\n".format(info))
+    exit(1)
 
-total = 19
-score = 0
-for i in range(total):
-    if test(i) is True:
-        score += 1
-print('\ntotal score: %d / %d' % (score, total))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-p","--path", help="path to executable SAT solver",required=True)
     parser.add_argument("-e","--epochs", help="epochs to test", required=True, type=int)
     parser.add_argument("--min_num_variables", help="minimum number of variables", default=1, type=int)
-    parser.add_argument("--max_num_variables", help="maximum number of variables", default=300, type=int)
+    parser.add_argument("--max_num_variables", help="maximum number of variables", default=40, type=int)
     parser.add_argument("--min_num_clauses", help="minimum number of clauses", default=1, type=int)
-    parser.add_argument("--max_num_clauses", help="maximum number of clauses", default=800, type=int)
+    parser.add_argument("--max_num_clauses", help="maximum number of clauses", default=10000, type=int)
     FLAGS = parser.parse_args()
+    solver_path = FLAGS.path
+
+    for epoch in range(FLAGS.epochs):
+        fn = "".join([random.choice('abcdefgHIJKLMNopqRSTuvwXYZ1234567890') for length in range(random.randint(30,50))])+".dimacs"
+        num_variables = random.randint(FLAGS.min_num_variables, FLAGS.max_num_variables)
+        num_clauses = random.randint(FLAGS.min_num_clauses, FLAGS.max_num_clauses)
+        if generate_testing_data(testing_data_fn=fn, num_variables=num_variables, num_clauses=num_clauses):
+            my_solver_success = True
+            minisat_result = minisat(testing_data_fn=fn)
+            my_solver_result, my_solver_assignment, runtime_info = my_solver(solver_path=solver_path,testing_data_fn=fn)
+
+            if my_solver_result and minisat_result:
+                result, error_info = test_satisfying_assignment(assignment=my_solver_assignment, testing_data_fn=fn)
+                if result:
+                    pass
+                else:
+                    error_handler(epoch, fn, "My solver generates a wrong assignment for a satisfiable CNF\n"+error_info)
+            elif my_solver_result and (not minisat_result):
+                error_handler(epoch, fn, "My solver think it's satisfiable but minisat does not agree")
+            elif (not my_solver_result) and (not minisat_result):
+                pass
+            else:
+                error_handler(epoch, fn, "My solver think it's unsatisfiable but minisat does not agree")
+
+            os.remove(fn)
+            print("Epoch {}: num_variables={}, num_clauses={}".format(epoch, num_variables, num_clauses))
+            print(runtime_info)
+        else:
+            pass
 
