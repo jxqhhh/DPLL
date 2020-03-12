@@ -73,7 +73,7 @@ class NQUEEN_CNF_GENERATOR:
         return row*self.N+column+1
 
 if __name__ == '__main__':
-    for i in range(10, 30, 5):
+    for i in range(5, 20, 5):
         queen=NQUEEN_CNF_GENERATOR(i)
         queen.write_to_file("queen{}.dimacs".format(i))
 
